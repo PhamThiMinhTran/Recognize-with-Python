@@ -8,6 +8,8 @@ from tensorflow.keras.applications.mobilenet_v2 import preprocess_input # type: 
 from tensorflow.keras.models import Sequential # type: ignore
 from tensorflow.keras.layers import Dense, Dropout # type: ignore
 from tensorflow.keras.utils import to_categorical # type: ignore
+from sklearn.utils import shuffle
+from sklearn.model_selection import train_test_split
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
@@ -31,6 +33,23 @@ def load_facenet_model(model_path):
     return sess, graph.get_tensor_by_name("input:0"), \
            graph.get_tensor_by_name("embeddings:0"), \
            graph.get_tensor_by_name("phase_train:0"), graph
+
+# Hàm kiểm tra độ mờ
+def is_blurry(image, threshold=100):
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    return cv2.Laplacian(gray, cv2.CV_64F).var() < threshold
+
+# Hàm kiểm tra ảnh hợp lệ
+def is_valid_face_image(image, detector, threshold=100):
+    if image is None or is_blurry(image, threshold):
+        return False
+    faces = detector.detect_faces(image)
+    if not faces:
+        return False
+    x, y, w, h = faces[0]["box"]
+    if w < 30 or h < 30:
+        return False
+    return True
 
 # Tiền xử lý ảnh
 def preprocess_face(face_img):
@@ -81,6 +100,7 @@ def process_data(sess, input_tensor, output_tensor, phase_train, graph):
     print("[INFO] Đang xử lý dữ liệu từ ảnh và video...")
     all_embeddings = []
     all_labels = []
+    detector = MTCNN()  # Initialize the MTCNN detector
 
     # Tập hợp các ID
     student_ids = set()
@@ -99,6 +119,8 @@ def process_data(sess, input_tensor, output_tensor, phase_train, graph):
             if filename.startswith(student_id + "_"):
                 img_path = os.path.join(DATASET_PATH, filename)
                 img = cv2.imread(img_path)
+                if not is_valid_face_image(img, detector):
+                    continue
                 emb = get_face_embedding(sess, input_tensor, output_tensor, phase_train, img, graph)
                 if emb is not None:
                     embeddings.append(emb)
@@ -109,20 +131,24 @@ def process_data(sess, input_tensor, output_tensor, phase_train, graph):
             video_file = os.path.join(VIDEO_PATH, f"{student_id}.avi")
             if os.path.exists(video_file):
                 frames = extract_frames(video_file, FRAME_INTERVAL)
-                detector = MTCNN()
                 for frame in frames:
-                    # Phát hiện khuôn mặt
-                    results = detector.detect_faces(frame)
-                    if results and results[0]['confidence'] > 0.9:
-                        x, y, w, h = results[0]['box']
-                        face = frame[y:y+h, x:x+w]
+                    if not is_valid_face_image(frame, detector):
+                        continue
+                    faces = detector.detect_faces(frame)
+                    if faces and faces[0]['confidence'] > 0.95:
+                        x, y, w, h = faces[0]["box"]
+                        h_img, w_img = frame.shape[:2]
+                        x = max(0, x)
+                        y = max(0, y)
+                        x2 = min(w_img, x + w)
+                        y2 = min(h_img, y + h)
+                        face = frame[y:y2, x:x2]
                         emb = get_face_embedding(sess, input_tensor, output_tensor, phase_train, face, graph)
                         if emb is not None:
                             embeddings.append(emb)
                             if len(embeddings) >= MAX_IMAGES_PER_ID:
                                 break
                 print(f"[VID] Đã bổ sung từ video cho {student_id}: {len(embeddings)} embeddings")
-        # Lưu
         for emb in embeddings:
             all_embeddings.append(emb)
             all_labels.append(student_id)
@@ -130,7 +156,6 @@ def process_data(sess, input_tensor, output_tensor, phase_train, graph):
     # Lưu embedding
     np.savez(EMBEDDINGS_PATH, embeddings=np.array(all_embeddings), labels=np.array(all_labels))
     print(f"[INFO] Đã lưu {len(all_embeddings)} embeddings vào {EMBEDDINGS_PATH}")
-
     train_mlp_classifier(np.array(all_embeddings), all_labels)
 
 # Huấn luyện MLP
@@ -139,20 +164,24 @@ def train_mlp_classifier(embeddings, labels, model_path="mlp_classifier.h5", lab
     label_to_idx = {label: idx for idx, label in enumerate(sorted(set(labels)))}
     y = [label_to_idx[label] for label in labels]
     y_cat = to_categorical(y, num_classes=len(label_to_idx))
-
+    X_train, X_val, y_train, y_val = train_test_split(
+        embeddings, y_cat, test_size=0.2, random_state=42, stratify=y
+    )
     model = Sequential([
         tf.keras.Input(shape=(embeddings.shape[1],)),
-        # Dense(521, activation='relu'),
-        # Dropout(0.4),
         Dense(256, activation='relu'),
         Dropout(0.3),
         Dense(128, activation='relu'),
         Dense(len(label_to_idx), activation='softmax')
     ])
-
     model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
-    model.fit(embeddings, y_cat, epochs=50, batch_size=16, verbose=1)
-
+    model.fit(
+        X_train, y_train,
+        validation_data=(X_val, y_val),
+        epochs=50,
+        batch_size=16,
+        verbose=1
+    )
     model.save(model_path)
     with open(label_map_path, "wb") as f:
         pickle.dump(label_to_idx, f)

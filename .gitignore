@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+myenv/
+.env
+config.json
+.vscode/
+dataset/
+videos/
+embeddings.npz
+*.h5
+label_mapping.pkl
+*.json

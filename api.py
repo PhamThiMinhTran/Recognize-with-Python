@@ -144,7 +144,6 @@ def base64_to_image(base64_str):
 class RecognizeFace(Resource):
     @ns.expect(recognize_model)
     def post(self):
-        attendance_data.clear()
         data = request.get_json()
         if not data or "image" not in data:
             return {"error": "Missing image"}, 400

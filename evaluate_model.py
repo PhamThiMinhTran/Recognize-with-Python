@@ -26,7 +26,7 @@ X_train, X_test, y_train_cat, y_test_cat, y_train, y_test = train_test_split(
 
 # Load mô hình MLP đã huấn luyện
 model = load_model('mlp_classifier.h5')
-
+print(model.summary())
 # Đánh giá mô hình
 loss, accuracy = model.evaluate(X_test, y_test_cat, verbose=0)
 print(f"\nTest Loss: {loss:.4f}")

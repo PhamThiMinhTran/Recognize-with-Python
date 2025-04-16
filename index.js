@@ -151,7 +151,6 @@ function startTrainingStatusPolling() {
 
 function startRecognizing() {
     if (recognizeInterval) return;
-
     showSystemMessage("Bắt đầu nhận diện khuôn mặt...");
     recognizeInterval = setInterval(async () => {
         const base64Image = await captureImageAsBase64();
@@ -166,7 +165,7 @@ function startRecognizing() {
                 if (recognizedResults && recognizedResults.length > 0) {
                     recognizedResults.forEach(result => {
                         const label = result.label;
-                        if (label !== "Unknown" && !recognizedNames.has(label)) {
+                        if (label !== "Unknown" && label !== "Processing" && !recognizedNames.has(label)) {
                             recognizedNames.add(label);
                             showSystemMessage(`Nhận diện: ${label}`);
                         }
@@ -178,7 +177,7 @@ function startRecognizing() {
             .catch(err => {
                 showSystemMessage("Lỗi nhận diện: " + err.message);
             });
-    }, 3000);
+    }, 1500);
 }
 
 function stopRecognizing() {

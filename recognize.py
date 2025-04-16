@@ -18,7 +18,7 @@ MODEL_PATH = "trained_facenet_model.pb"
 ATTENDANCE_EXCEL = "attendance.xlsx"
 MLP_MODEL_PATH = "mlp_classifier.h5"
 LABEL_MAP_PATH = "label_mapping.pkl"
-THRESHOLD = 0.8
+THRESHOLD = 0.7
 
 # === Trạng thái toàn cục ===
 attended_today = set()
@@ -27,6 +27,8 @@ attendance_data = []
 ACTIVE_TRACKS = {}
 TOTAL_TRACKS = {}
 NEXT_ID = 1
+RECOGNITION_COUNTS = {} 
+RECOGNITION_THRESHOLD = 3
 
 # === Load mô hình ===
 def load_facenet_model():
@@ -48,6 +50,9 @@ mlp_model = load_model(MLP_MODEL_PATH, compile=False)
 with open(LABEL_MAP_PATH, "rb") as f:
     label_mapping = pickle.load(f)
 inv_label_mapping = {v: k for k, v in label_mapping.items()}
+data = np.load(EMBEDDINGS_PATH)
+known_embeddings = data['embeddings']
+known_labels = data['labels']
 
 def preprocess_face(face_img):
     if face_img is None or face_img.shape[0] < 20 or face_img.shape[1] < 20:
@@ -67,7 +72,21 @@ def preprocess_face(face_img):
     return face_img
 
 def normalize_embedding(embedding):
-    return embedding / np.linalg.norm(embedding)
+    norm = np.linalg.norm(embedding)
+    if norm == 0:
+        return None
+    return embedding / norm
+
+def get_nearest_label_by_embedding(embedding, known_embeddings, known_labels, threshold=0.8):
+    distances = np.linalg.norm(known_embeddings - embedding, axis=1)
+    min_idx = np.argmin(distances)
+    min_dist = distances[min_idx]
+
+    if min_dist < threshold:
+        label_idx = known_labels[min_idx]
+        return inv_label_mapping[label_idx], min_dist
+    else:
+        return "Unknown", min_dist
 
 def get_face_embedding(sess, input_tensor, output_tensor, phase_train, face_img, graph):
     processed = preprocess_face(face_img)
@@ -230,7 +249,14 @@ def recognize_faces_from_image(frame):
         probs = mlp_model.predict(np.expand_dims(embedding, axis=0), verbose=0)[0]
         max_prob = np.max(probs)
         label_idx = np.argmax(probs)
-        label = inv_label_mapping[label_idx] if max_prob > THRESHOLD else "Unknown"
+        label = inv_label_mapping[label_idx]
+        if max_prob < THRESHOLD:
+            label_by_dist, dist = get_nearest_label_by_embedding(embedding, known_embeddings, known_labels, threshold=0.8)
+            if label_by_dist != "Unknown":
+                print(f"[DEBUG] Dùng khoảng cách thay thế: {label} ➜ {label_by_dist} (dist: {dist:.4f})")
+                label = label_by_dist
+            else:
+                label = "Unknown"
 
         assigned_id = None
         min_dist = 1e9
@@ -250,11 +276,20 @@ def recognize_faces_from_image(frame):
         current_ids.add(assigned_id)
 
         if label != "Unknown":
-            mark_attendance(label)
+            if label not in attended_today:
+                RECOGNITION_COUNTS[label] = RECOGNITION_COUNTS.get(label, 0) + 1
+                if RECOGNITION_COUNTS[label] == RECOGNITION_THRESHOLD:
+                    print(f"[INFO] {label} đã được xác nhận sau {RECOGNITION_THRESHOLD} lần nhận diện.")
+                    mark_attendance(label)
+                else:
+                    continue  
+            label_to_return = label
+        else:
+            label_to_return = "Unknown"
 
         results.append({
             "id": assigned_id,
-            "label": label,
+            "label": label_to_return,
             "probability": float(max_prob),
             "bbox": [int(x), int(y), int(w), int(h)]
         })
