@@ -157,7 +157,6 @@ def save_attendance():
 #         frame = preprocess_image(frame)
 #         faces = detector.detect_faces(frame)
 #         current_ids = set()
-
 #         if attendance_mode:
 #             for face in faces:
 #                 x, y, w, h = face['box']
@@ -169,7 +168,6 @@ def save_attendance():
 #                 max_prob = np.max(probs)
 #                 label_idx = np.argmax(probs)
 #                 label = inv_label_mapping[label_idx] if max_prob > THRESHOLD else "Unknown"
-
 #                 assigned_id = None
 #                 min_dist = 1e9
 #                 for pid, info in ACTIVE_TRACKS.items():
@@ -185,27 +183,21 @@ def save_attendance():
 #                     TOTAL_TRACKS[assigned_id] = label
 #                 ACTIVE_TRACKS[assigned_id] = {'bbox': face['box'], 'embedding': embedding}
 #                 current_ids.add(assigned_id)
-
 #                 # Vẽ thông tin lên ảnh
 #                 color = (0, 255, 0) if label != "Unknown" else (0, 0, 255)
 #                 cv2.rectangle(frame, (x, y), (x + w, y + h), color, 2)
 #                 cv2.putText(frame, label, (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.7, color, 2)
-
 #                 if label != "Unknown":
 #                     mark_attendance(label)
-
 #         for pid in set(ACTIVE_TRACKS.keys()) - current_ids:
 #             del ACTIVE_TRACKS[pid]
-
 #         # Thông tin hiển thị
 #         now_str = datetime.now().strftime("%H:%M:%S")
 #         cv2.putText(frame, f"People: {len(TOTAL_TRACKS)} | Present: {len(ACTIVE_TRACKS)} | Marked: {len(attended_today)}",
 #                     (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
 #         cv2.putText(frame, f"Time: {now_str}", (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (200, 200, 200), 1)
-
 #         cv2.imshow("Nhận diện khuôn mặt", frame)
 #         key = cv2.waitKey(1) & 0xFF
-
 #         if key == 27:  # ESC
 #             print("[EXIT] Đã thoát chương trình.")
 #             break
@@ -223,10 +215,8 @@ def save_attendance():
 #                 print("[INFO] Đã reset danh sách điểm danh.")
 #         elif key == ord('f'):
 #             save_attendance()
-
 #     cap.release()
 #     cv2.destroyAllWindows()
-
 # if __name__ == "__main__":
 #     recognize_faces()
 

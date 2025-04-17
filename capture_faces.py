@@ -194,7 +194,7 @@ def save_face_images(frame, faces, student_id, context):
                 context["count"] += 1
                 context["face_embeddings_buffer"].clear()
 
-                if context["count"] >= 30:
+                if context["count"] >= 50:
                     context["video_writer"].release()
                     context["done"] = True
                     return True
