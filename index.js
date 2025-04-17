@@ -177,7 +177,7 @@ function startRecognizing() {
             .catch(err => {
                 showSystemMessage("Lỗi nhận diện: " + err.message);
             });
-    }, 1500);
+    }, 3000);
 }
 
 function stopRecognizing() {
@@ -187,9 +187,54 @@ function stopRecognizing() {
     showSystemMessage("Đã dừng nhận diện.");
 }
 
-function exportData(endpoint) {
-    showSystemMessage("Đang tải dữ liệu điểm danh...");
-    fetch('http://127.0.0.1:5000/api/download_attendance')
+function exportData() {
+    showSystemMessage("Đang lấy dữ liệu điểm danh tạm...");
+    fetch('http://127.0.0.1:5000/api/preview_attendance')
+        .then(res => {
+            if (!res.ok) throw new Error("Không có dữ liệu để xuất.");
+            return res.json();
+        })
+        .then(data => {
+            renderPreviewModal(data);
+            const modal = new bootstrap.Modal(document.getElementById('attendancePreviewModal'));
+            modal.show();
+        })
+        .catch(err => {
+            showSystemMessage("Lỗi: " + err.message);
+        });
+}
+
+function renderPreviewModal(data) {
+    const container = document.getElementById("attendancePreviewList");
+    if (!data.length) {
+        container.innerHTML = "<p class='text-danger'>Danh sách điểm danh trống.</p>";
+        return;
+    }
+    let html = `<table class="table table-bordered"><thead><tr>`;
+    const keys = Object.keys(data[0]);
+    keys.forEach(k => html += `<th>${k}</th>`);
+    html += "</tr></thead><tbody>";
+
+    data.forEach(row => {
+        html += "<tr>";
+        keys.forEach(k => html += `<td>${row[k]}</td>`);
+        html += "</tr>";
+    });
+    html += "</tbody></table>";
+    container.innerHTML = html;
+}
+
+function confirmSaveAndDownload() {
+    showSystemMessage("Đang lưu dữ liệu...");
+    fetch('http://127.0.0.1:5000/api/save_attendance', {
+        method: 'POST'
+    })
+        .then(res => res.json())
+        .then(data => {
+            if (data.error) throw new Error(data.error);
+            showSystemMessage(data.message);
+            return fetch('http://127.0.0.1:5000/api/download_attendance');
+        })
         .then(response => {
             if (!response.ok) throw new Error("Không thể tải file.");
             return response.blob();
@@ -204,8 +249,11 @@ function exportData(endpoint) {
             a.remove();
             window.URL.revokeObjectURL(url);
             showSystemMessage("Đã tải xuống file attendance.xlsx");
+
+            const modal = bootstrap.Modal.getInstance(document.getElementById('attendancePreviewModal'));
+            modal.hide();
         })
-        .catch(err => showSystemMessage("Lỗi khi tải file: " + err.message));
+        .catch(err => showSystemMessage("Lỗi: " + err.message));
 }
 
 window.onload = startCamera;

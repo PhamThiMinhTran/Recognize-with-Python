@@ -5,202 +5,140 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Attendance system</title>
+    <link rel="stylesheet" href="bootstrap-5.0.2-dist/css/bootstrap.min.css">
     <style>
         body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
             background-color: #FFF2F2;
-            display: flex;
-            justify-content: center;
-            align-items: center;
             height: 100vh;
-        }
-
-        .container {
-            padding: 50px;
-            background: #FAF5ED;
-            border-radius: 20px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
             display: flex;
-            flex-direction: column;
-            gap: 30px;
-
-            .title {
-                display: flex;
-                align-items: center;
-                justify-content: flex-start;
-                width: 100%;
-
-                img {
-                    width: 100px;
-                    object-fit: cover;
-                }
-
-                h1 {
-                    margin: 0;
-                    font-size: 45px;
-                    flex-grow: 1;
-                    text-align: center;
-                }
-            }
-        }
-
-        .main-system {
-            display: flex;
-            flex-direction: row;
             align-items: center;
-            gap: 30px;
+            justify-content: center;
+            font-family: Arial, sans-serif;
+        }
 
-            .butons {
-                display: flex;
-                font-size: 20px;
-                flex-direction: column;
-                align-items: right;
-                justify-content: space-between;
-                gap: 20px;
+        .chat-log .msg {
+            padding: 8px 12px;
+            border-radius: 20px;
+            margin: 5px 0;
+            max-width: 80%;
+            word-wrap: break-word;
+        }
 
-                button {
-                    background-color: #A9B5DF;
-                    border-radius: 10px;
-                    padding: 10px;
+        .chat-log .user {
+            background-color: #d1e7dd;
+            color: #0f5132;
+            text-align: right;
+            float: right;
+            clear: both;
+        }
 
-                    &:hover {
-                        background-color: #2D336B;
-                    }
-                }
-            }
+        .chat-log .system {
+            background-color: #e2e3e5;
+            color: #41464b;
+            text-align: left;
+            float: left;
+            clear: both;
+        }
 
-            .video-section {
-                width: 800px;
-                height: 600px;
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                justify-content: center;
-                overflow: hidden;
+        video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 10px;
+        }
 
-                .video {
-                    width: 100%;
-                    height: 100%;
-                    object-fit: cover;
-                }
+        .width-100 {
+            width: 100px;
+        }
 
-                .butons-video {
-                    margin-top: 10px;
-                    display: flex;
-                    gap: 10px;
+        .height-600 {
+            height: 600px;
+        }
 
-                    button {
-                        padding: 8px 16px;
-                        border-radius: 10px;
-                        background-color: #ffc107;
-                        border: none;
-                        cursor: pointer;
-
-                        &:hover {
-                            background-color: #e0a800;
-                            color: white;
-                        }
-                    }
-                }
-            }
-
-            .message {
-                overflow-y: auto;
-                background-color: #f9f9f9;
-                border: 2px solid #ddd;
-                border-radius: 10px;
-                padding: 10px;
-                font-family: 'Segoe UI', sans-serif;
-                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-            }
-
-            .chat-log {
-                height: 400px;
-                width: 450px;
-                overflow-y: auto;
-                margin-bottom: 10px;
-            }
-
-            .chat-log .msg {
-                padding: 8px 12px;
-                border-radius: 20px;
-                margin: 5px 0;
-                max-width: 80%;
-                word-wrap: break-word;
-            }
-
-            .chat-log .user {
-                background-color: #d1e7dd;
-                color: #0f5132;
-                text-align: right;
-                float: right;
-                clear: both;
-            }
-
-            .chat-log .system {
-                background-color: #e2e3e5;
-                color: #41464b;
-                text-align: left;
-                float: left;
-                clear: both;
-            }
-
-            .chat-input {
-                display: flex;
-                gap: 10px;
-            }
-
-            .chat-input input {
-                flex: 1;
-                padding: 10px;
-                border-radius: 20px;
-                border: 1px solid #ccc;
-            }
-
-            .chat-input button {
-                padding: 10px 20px;
-                border-radius: 20px;
-                border: none;
-                background-color: #007bff;
-                color: white;
-                cursor: pointer;
-            }
+        .style-chat-log {
+            height: 400px;
+            overflow-y: auto;
         }
     </style>
 </head>
 
 <body>
-    <div class="container">
-        <div class="title">
-            <img src="images/LogoMTU.png" alt="Trường Đại học xây dựng Miền Tây">
-            <h1>Facial recognition system</h1>
+    <div class="container bg-light p-5 rounded shadow">
+        <div class="d-flex align-items-center mb-4">
+            <img src="images/LogoMTU.png" alt="Logo" class="me-3 width-100">
+            <h1 class="text-center flex-grow-1">Facial Recognition System</h1>
         </div>
-        <div class="main-system">
-            <div class="butons">
-                <button onclick="callAPI('/capture')">Capture Faces</button>
-                <button onclick="callAPI('/training')">Train System</button>
-                <button onclick="startRecognizing()">Recognize Faces</button>
-                <button onclick="exportData()">Export Data</button>
+        <div class="row g-4">
+            <div class="col-md-2 d-flex flex-column gap-3">
+                <button onclick="callAPI('/capture')" class="btn btn-primary d-flex align-items-center">
+                    <div class="me-2 d-flex align-items-center">
+                        <img src="images/camera.png" alt="Capture Faces" width="32" height="32">
+                    </div>
+                    <div>Capture Faces</div>
+                </button>
+                <button onclick="callAPI('/training')" class="btn btn-success d-flex align-items-center">
+                    <div class="me-2 d-flex align-items-center">
+                        <img src="images/training.png" alt="Training system" width="32" height="32">
+                    </div>
+                    <div>Train System</div>
+                </button>
+                <button onclick="startRecognizing()" class="btn btn-info text-white d-flex align-items-center">
+                    <div class="me-2 d-flex align-items-center">
+                        <img src="images/recognize_face.png" alt="Recognition faces" width="32" height="32">
+                    </div>
+                    <div>Recognize Faces</div>
+                </button>
+                <button onclick="exportData()" class="btn btn-warning d-flex align-items-center">
+                    <div class="me-2 d-flex align-items-center">
+                        <img src="images/download_excel.jpg" alt="Download file excel" width="32" height="32">
+                    </div>
+                    <div>Download file</div>
+                </button>
             </div>
-            <div class="video-section">
-                <video id="video" autoplay></video>
-                <div class="butons-video">
-                    <button onclick="stopRecognizing()">Stop recognize</button>
+            <div class="col-md-6">
+                <div class="border rounded-3 overflow-hidden shadow-sm bg-light height-600">
+                    <video id="video" autoplay></video>
+                </div>
+                <div class="mt-2 text-center">
+                    <button onclick="stopRecognizing()" class="btn btn-danger">Stop recognize</button>
                 </div>
             </div>
-            <div class="message">
-                <div id="chatLog" class="chat-log"></div>
-                <div class="chat-input">
-                    <input type="text" id="studentID" placeholder="Nhập tên sinh viên...">
-                    <input type="text" id="chatBox" placeholder="Nhập nội dung..."
-                        onkeydown="if(event.key==='Enter') sendChat()">
-                    <button onclick="sendChat()">Gửi</button>
+            <div class="col-md-4">
+                <div class="border p-3 rounded shadow mb-3 style-chat-log">
+                    <div id="chatLog" class="chat-log p-1"></div>
+                </div>
+                <div class="d-flex flex-column gap-2 rounded-3 shadow-sm p-3 bg-light">
+                    <input type="text" id="studentID" placeholder="Nhập tên sinh viên..." class="form-control">
+                    <div class="input-group">
+                        <input type="text" id="chatBox" class="form-control" placeholder="Nhập nội dung..."
+                            onkeydown="if(event.key==='Enter') sendChat()">
+                        <button onclick="sendChat()" class="btn btn-primary">Gửi</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="modal fade" id="attendancePreviewModal" tabindex="-1" aria-labelledby="previewLabel"
+            aria-hidden="true">
+            <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="previewLabel">Xác nhận danh sách điểm danh</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div id="attendancePreviewList" class="table-responsive"></div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Huỷ</button>
+                        <button type="button" class="btn btn-success" onclick="confirmSaveAndDownload()">Xác nhận tải
+                            xuống</button>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
     <script src="index.js"></script>
+    <script src="bootstrap-5.0.2-dist/js/bootstrap.bundle.min.js"></script>
 </body>
+
 </html>

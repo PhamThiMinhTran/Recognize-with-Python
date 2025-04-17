@@ -161,11 +161,11 @@ class RecognizeFace(Resource):
 class SaveAttendance(Resource):
     def post(self):
         if not attendance_data:
-            return {"error": "Chưa có ai được điểm danh!"}, 400
+            return {"error": "Chua co ai diem danh!"}, 400
         try:
             save_attendance()
             attendance_data.clear()  
-            return {"message": "Đã lưu điểm danh vào attendance.xlsx"}, 200
+            return {"message": "Da luu diem danh attendance.xlsx"}, 200
         except Exception as e:
             return {"error": str(e)}, 500
 
@@ -175,7 +175,15 @@ class DownloadAttendance(Resource):
         path = "attendance.xlsx"
         if os.path.exists(path):
             return send_file(path, as_attachment=True)
-        return {"error": "File không tìm thấy"}, 404
+        return {"error": "Khong tim thay File"}, 404
+
+@ns.route("/preview_attendance")
+class PreviewAttendance(Resource):
+    def get(self):
+        if not attendance_data:
+            return {"error": "Chưa có dữ liệu điểm danh"}, 404
+        return jsonify(attendance_data)
+
 
 if __name__ == "__main__":
     app.run(debug=False)
