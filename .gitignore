@@ -10,3 +10,4 @@ embeddings.npz
 *.h5
 label_mapping.pkl
 *.json
+attendance.xlsx

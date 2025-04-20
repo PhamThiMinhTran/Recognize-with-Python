@@ -17,11 +17,12 @@
         }
 
         .chat-log .msg {
-            padding: 8px 12px;
-            border-radius: 20px;
-            margin: 5px 0;
-            max-width: 80%;
+            /* max-width: 100%; */
+            padding: 10px 14px;
+            border-radius: 18px;
             word-wrap: break-word;
+            white-space: pre-line;
+            display: inline-block;
         }
 
         .chat-log .user {
@@ -30,14 +31,22 @@
             text-align: right;
             float: right;
             clear: both;
+            border-bottom-right-radius: 0;
+        }
+        
+        .msg.bot {
+            background-color: #f1f1f1; /* Màu xám nhạt */
+            align-self: flex-start;
+            text-align: left;
+            border-bottom-left-radius: 0;
         }
 
-        .chat-log .system {
-            background-color: #e2e3e5;
-            color: #41464b;
-            text-align: left;
-            float: left;
-            clear: both;
+        .msg.system {
+            background-color: #fff3cd; /* Màu vàng cảnh báo */
+            color: #856404;
+            align-self: center;
+            text-align: center;
+            border-radius: 8px;
         }
 
         video {
@@ -59,18 +68,27 @@
             height: 400px;
             overflow-y: auto;
         }
+
     </style>
 </head>
 
 <body>
     <div class="container bg-light p-5 rounded shadow">
-        <div class="d-flex align-items-center mb-4">
-            <img src="images/LogoMTU.png" alt="Logo" class="me-3 width-100">
-            <h1 class="text-center flex-grow-1">Facial Recognition System</h1>
+        <div class="d-flex align-items-center mb-4 justify-content-center gap-3 mt-5">
+            <img src="images/LogoMTU.png" alt="Logo" class="me-5 width-100">
+            <h1 class="text-center">
+                Facial Recognition System
+                <br>
+                <span class="fs-6 text-muted">(Hệ thống điểm danh bằng khuôn mặt)</span>
+            </h1>
         </div>
         <div class="row g-4">
             <div class="col-md-2 d-flex flex-column gap-3">
-                <button onclick="callAPI('/capture')" class="btn btn-primary d-flex align-items-center">
+                <div>
+                    <label for="cameraSelect" class="form-label fs-5 pb-2">Select Camera:</label>
+                    <select id="cameraSelect" class="form-select mb-2 custom-camera-select" onchange="switchCamera()"></select>
+                </div>
+                <button onclick="callAPI('/capture')" class="btn btn-primary d-flex align-items-center mt-3">
                     <div class="me-2 d-flex align-items-center">
                         <img src="images/camera.png" alt="Capture Faces" width="32" height="32">
                     </div>
@@ -95,24 +113,24 @@
                     <div>Download file</div>
                 </button>
             </div>
-            <div class="col-md-6">
+            <div class="col-md-7">
                 <div class="border rounded-3 overflow-hidden shadow-sm bg-light height-600">
-                    <video id="video" autoplay></video>
+                    <video id="video" autoplay muted></video>
                 </div>
                 <div class="mt-2 text-center">
                     <button onclick="stopRecognizing()" class="btn btn-danger">Stop recognize</button>
                 </div>
             </div>
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <div class="border p-3 rounded shadow mb-3 style-chat-log">
-                    <div id="chatLog" class="chat-log p-1"></div>
+                    <div id="chatLog" class="chat-log d-flex flex-column p-1 gap-2"></div>
                 </div>
                 <div class="d-flex flex-column gap-2 rounded-3 shadow-sm p-3 bg-light">
                     <input type="text" id="studentID" placeholder="Nhập tên sinh viên..." class="form-control">
                     <div class="input-group">
                         <input type="text" id="chatBox" class="form-control" placeholder="Nhập nội dung..."
-                            onkeydown="if(event.key==='Enter') sendChat()">
-                        <button onclick="sendChat()" class="btn btn-primary">Gửi</button>
+                            onkeydown="if(event.key==='Enter') chatBot()">
+                        <button onclick="chatBot()" class="btn btn-primary">Gửi</button>
                     </div>
                 </div>
             </div>
@@ -130,8 +148,7 @@
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Huỷ</button>
-                        <button type="button" class="btn btn-success" onclick="confirmSaveAndDownload()">Xác nhận tải
-                            xuống</button>
+                        <button type="button" class="btn btn-success" onclick="confirmSaveAndDownload()">Xác nhận tải xuống</button>
                     </div>
                 </div>
             </div>

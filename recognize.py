@@ -140,7 +140,7 @@ def save_attendance():
         with pd.ExcelWriter(ATTENDANCE_EXCEL, engine='openpyxl', mode='a', if_sheet_exists='overlay') as writer:
             df.to_excel(writer, index=False, header=False)
     else:
-        df.to_excel(ATTENDANCE_EXCEL, index=False)
+        df.to_excel(ATTENDANCE_EXCEL, index=False, header=True)
     print("Đã lưu điểm danh thành công!")
 
 # def recognize_faces():

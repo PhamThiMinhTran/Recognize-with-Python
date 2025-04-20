@@ -20,6 +20,7 @@ log.setLevel(logging.ERROR)
 from capture_faces import process_uploaded_image, capture_context
 from training import load_facenet_model, process_data
 from recognize import recognize_faces_from_image, save_attendance, attendance_data
+from chatBot import get_bot_response
 
 app = Flask(__name__)
 CORS(app)
@@ -39,7 +40,10 @@ recognize_model = api.model('RecognizeInput', {
     'image': fields.String(required=True, description='Ảnh base64 (jpg/png)')
 })
 
-# Đường dẫn đến các tệp tin
+chat_model = ns.model("ChatMessage", {
+    "message": fields.String(required=True, description="Tin nhắn từ người dùng")
+})
+
 EMBEDDINGS_PATH = "embeddings.npz"
 MODEL_PATH = "trained_facenet_model.pb"
 DATASET_PATH = "dataset"
@@ -184,6 +188,14 @@ class PreviewAttendance(Resource):
             return {"error": "Chưa có dữ liệu điểm danh"}, 404
         return jsonify(attendance_data)
 
+@ns.route("/chatBot")
+class ChatBot(Resource):
+    @ns.expect(chat_model) 
+    def post(self):
+        data = request.get_json()
+        message = data.get("message", "")
+        response = get_bot_response(message)
+        return jsonify({"response": response})
 
 if __name__ == "__main__":
     app.run(debug=False)

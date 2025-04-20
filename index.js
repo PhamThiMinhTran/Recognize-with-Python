@@ -1,4 +1,4 @@
-let videoStream;
+let videoStream = null;
 let captureInterval;
 let isCapturing = false;
 let isDone = false;
@@ -9,13 +9,40 @@ let lastTrainingStatus = "";
 let recognizeInterval = null;
 let recognizedNames = new Set();
 
-async function startCamera() {
-    const videoElement = document.getElementById('video');
+async function listCameras() {
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    const videoDevices = devices.filter(device => device.kind === "videoinput");
+
+    const select = document.getElementById("cameraSelect");
+    select.innerHTML = ""; // clear trước
+
+    videoDevices.forEach((device, index) => {
+        const option = document.createElement("option");
+        option.value = device.deviceId;
+        option.text = device.label || `Camera ${index}`;
+        select.appendChild(option);
+    });
+}
+
+function switchCamera() {
+    const select = document.getElementById("cameraSelect");
+    const deviceId = select.value;
+    startCamera(deviceId);
+}
+
+async function startCamera(deviceId = null) {
+    if (videoStream) {
+        videoStream.getTracks().forEach(track => track.stop());
+    }
+    const constraints = {
+        video: deviceId ? { deviceId: { exact: deviceId } } : true
+    };
     try {
-        videoStream = await navigator.mediaDevices.getUserMedia({ video: true });
-        videoElement.srcObject = videoStream;
+        videoStream = await navigator.mediaDevices.getUserMedia(constraints);
+        const video = document.getElementById("video");
+        video.srcObject = videoStream;
     } catch (err) {
-        showSystemMessage("Không thể truy cập camera: " + err.message);
+        showSystemMessage("Không thể bật camera: " + err.message);
     }
 }
 
@@ -112,15 +139,6 @@ async function captureImageAsBase64() {
     const context = canvas.getContext('2d');
     context.drawImage(video, 0, 0, width, height);
     return canvas.toDataURL('image/jpeg', 0.9);
-}
-
-function sendChat() {
-    const msg = document.getElementById('chatBox').value;
-    if (msg) {
-        const chatLog = document.getElementById('chatLog');
-        chatLog.innerHTML += `<div class="msg user">${msg}</div>`;
-        document.getElementById('chatBox').value = '';
-    }
 }
 
 function startTrainingStatusPolling() {
@@ -256,4 +274,42 @@ function confirmSaveAndDownload() {
         .catch(err => showSystemMessage("Lỗi: " + err.message));
 }
 
-window.onload = startCamera;
+function appendMessage(content, type = 'system') {
+    const chatLog = document.getElementById('chatLog');
+    chatLog.innerHTML += `<div class="msg ${type}">${content}</div>`;
+    chatLog.scrollTop = chatLog.scrollHeight;
+}
+
+function chatBot() {
+    const input = document.getElementById('chatBox');
+    const message = input.value.trim();
+    if (!message) return;
+    appendMessage(message, 'user');
+    input.value = '';
+    fetch('http://localhost:5000/api/chatBot', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.response) {
+            appendMessage(data.response, 'bot');
+        } else {
+            appendMessage("Chatbot không phản hồi đúng định dạng.", 'system');
+        }
+    })
+    .catch(error => {
+        appendMessage("Lỗi kết nối chatbot: " + error.message, 'system');
+    });
+}
+
+
+
+window.onload = async () => {
+    await listCameras();
+    const select = document.getElementById("cameraSelect");
+    if (select.options.length > 0) {
+        startCamera(select.options[0].value); // mở camera đầu tiên
+    }
+};
