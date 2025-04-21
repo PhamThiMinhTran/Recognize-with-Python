@@ -1,9 +1,11 @@
+import os
 import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+import pickle
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
 from sklearn.metrics import classification_report, confusion_matrix
-import matplotlib.pyplot as plt
-import seaborn as sns
 from tensorflow.keras.models import load_model  # type: ignore
 from tensorflow.keras.utils import to_categorical # type: ignore
 
@@ -51,3 +53,30 @@ plt.ylabel('True Label')
 plt.title('Confusion Matrix')
 plt.tight_layout()
 plt.show()
+
+if os.path.exists("training_history.pkl"):
+    with open("training_history.pkl", "rb") as f:
+        history = pickle.load(f)
+
+    plt.figure(figsize=(12, 5))
+
+    # Biểu đồ Loss
+    plt.subplot(1, 2, 1)
+    plt.plot(history['loss'], label='Train Loss')
+    plt.plot(history['val_loss'], label='Validation Loss')
+    plt.title('Loss theo Epoch')
+    plt.xlabel('Epoch')
+    plt.ylabel('Loss')
+    plt.legend()
+
+    # Biểu đồ Accuracy
+    plt.subplot(1, 2, 2)
+    plt.plot(history['accuracy'], label='Train Accuracy')
+    plt.plot(history['val_accuracy'], label='Validation Accuracy')
+    plt.title('Accuracy theo Epoch')
+    plt.xlabel('Epoch')
+    plt.ylabel('Accuracy')
+    plt.legend()
+
+    plt.tight_layout()
+    plt.show()

@@ -175,20 +175,26 @@ def train_mlp_classifier(embeddings, labels, model_path="mlp_classifier.h5", lab
         Dense(len(label_to_idx), activation='softmax')
     ])
     model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
-    model.fit(
-        X_train, y_train,
-        validation_data=(X_val, y_val),
-        epochs=50,
-        batch_size=16,
-        verbose=1
+    history = model.fit(
+    X_train, y_train,
+    validation_data=(X_val, y_val),
+    epochs=50,
+    batch_size=16,
+    verbose=1
     )
+
+    with open("training_history.pkl", "wb") as f:
+        pickle.dump(history.history, f)
     model.save(model_path)
     with open(label_map_path, "wb") as f:
         pickle.dump(label_to_idx, f)
     print(f"[INFO] Mô hình đã lưu tại {model_path} và {label_map_path}")
 
 # Chạy chương trình
-if __name__ == "__main__":
+def main():
     sess, input_tensor, output_tensor, phase_train, graph = load_facenet_model(MODEL_PATH)
     process_data(sess, input_tensor, output_tensor, phase_train, graph)
     sess.close()
+
+if __name__ == "__main__":
+    main()

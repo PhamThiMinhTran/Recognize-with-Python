@@ -138,7 +138,10 @@ def save_attendance():
     df = pd.DataFrame(attendance_data)
     if os.path.exists(ATTENDANCE_EXCEL):
         with pd.ExcelWriter(ATTENDANCE_EXCEL, engine='openpyxl', mode='a', if_sheet_exists='overlay') as writer:
-            df.to_excel(writer, index=False, header=False)
+            workbook = writer.book
+            sheet = workbook.active
+            start_row = sheet.max_row + 1 
+            df.to_excel(writer, index=False, header=False, startrow=start_row)
     else:
         df.to_excel(ATTENDANCE_EXCEL, index=False, header=True)
     print("Đã lưu điểm danh thành công!")

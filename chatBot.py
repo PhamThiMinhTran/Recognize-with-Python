@@ -97,15 +97,12 @@ def process_attendance_query(message):
                 return f"Tất cả sinh viên đều đã điểm danh ngày {ngay}."
             danh_sach_vang = '\n'.join(f"- {row['Name']}" for _, row in vang.iterrows())
             return f"Danh sách sinh viên vắng mặt ngày {ngay}:\n{danh_sach_vang}"
-
-        # === Không khớp mẫu nào ===
         return (
             "Bạn có thể hỏi:\n"
             "- Bạn \"Nguyễn Văn A\" có điểm danh ngày ?? không?\n"
-            "Lưu ý: Tên hãy để trong dấu ngoặc kép (" ")\n"
             "- Ai đã điểm danh ngày ???\n"
             "- Ngày ?? có ai vắng không?"
         )
 
     except Exception as e:
-        return f"⚠️ Đã xảy ra lỗi khi xử lý: {str(e)}"
+        return f"Đã xảy ra lỗi khi xử lý: {str(e)}"

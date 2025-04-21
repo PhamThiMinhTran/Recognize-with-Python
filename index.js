@@ -304,8 +304,6 @@ function chatBot() {
     });
 }
 
-
-
 window.onload = async () => {
     await listCameras();
     const select = document.getElementById("cameraSelect");
