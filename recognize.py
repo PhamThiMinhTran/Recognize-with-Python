@@ -18,7 +18,8 @@ MODEL_PATH = "trained_facenet_model.pb"
 ATTENDANCE_EXCEL = "attendance.xlsx"
 MLP_MODEL_PATH = "mlp_classifier.h5"
 LABEL_MAP_PATH = "label_mapping.pkl"
-THRESHOLD = 0.7
+MLP_PROB_THRESHOLD = 0.85      # Số ... đến 0.85
+EMBED_DIST_THRESHOLD = 0.55    # Số 0.55 đến 0.7
 
 # === Trạng thái toàn cục ===
 attended_today = set()
@@ -28,7 +29,7 @@ ACTIVE_TRACKS = {}
 TOTAL_TRACKS = {}
 NEXT_ID = 1
 RECOGNITION_COUNTS = {} 
-RECOGNITION_THRESHOLD = 3
+RECOGNITION_THRESHOLD = 2
 
 # === Load mô hình ===
 def load_facenet_model():
@@ -84,7 +85,7 @@ def get_nearest_label_by_embedding(embedding, known_embeddings, known_labels, th
 
     if min_dist < threshold:
         label_idx = known_labels[min_idx]
-        return inv_label_mapping[label_idx], min_dist
+        return label_idx, min_dist
     else:
         return "Unknown", min_dist
 
@@ -230,7 +231,7 @@ def recognize_faces_from_image(frame):
     current_ids = set()
 
     for face in faces:
-        if face['confidence'] < 0.9: 
+        if face['confidence'] < 0.92: 
             continue  
         x, y, w, h = face['box']
         x, y = max(0, x), max(0, y)
@@ -243,23 +244,24 @@ def recognize_faces_from_image(frame):
         max_prob = np.max(probs)
         label_idx = np.argmax(probs)
         label = inv_label_mapping[label_idx]
-        if max_prob < THRESHOLD:
-            label_by_dist, dist = get_nearest_label_by_embedding(embedding, known_embeddings, known_labels, threshold=0.8)
-            if label_by_dist != "Unknown":
-                print(f"[DEBUG] Dùng khoảng cách thay thế: {label} ➜ {label_by_dist} (dist: {dist:.4f})")
-                label = label_by_dist
-            else:
-                label = "Unknown"
+        label_by_dist, dist = get_nearest_label_by_embedding(embedding, known_embeddings, known_labels, threshold=EMBED_DIST_THRESHOLD)
+        if max_prob >= MLP_PROB_THRESHOLD and dist <= EMBED_DIST_THRESHOLD:
+            label = inv_label_mapping[label_idx]
+        elif dist <= EMBED_DIST_THRESHOLD:
+            label = label_by_dist
+        else:
+            label = "Unknown"
 
         assigned_id = None
         min_dist = 1e9
-        for pid, info in ACTIVE_TRACKS.items():
-            iou_score = iou(face['box'], info['bbox'])
-            emb_dist = np.linalg.norm(embedding - info['embedding'])
-            if iou_score > 0.3 or (label != "Unknown" and emb_dist < 0.6):
-                if emb_dist < min_dist:
-                    min_dist = emb_dist
-                    assigned_id = pid
+        if label != "Unknown":
+            for pid, info in ACTIVE_TRACKS.items():
+                iou_score = iou(face['box'], info['bbox'])
+                emb_dist = np.linalg.norm(embedding - info['embedding'])
+                if iou_score > 0.3 or emb_dist < 0.6:
+                    if emb_dist < min_dist:
+                        min_dist = emb_dist
+                        assigned_id = pid
 
         if assigned_id is None:
             assigned_id = f"Person_{NEXT_ID}"
@@ -274,6 +276,7 @@ def recognize_faces_from_image(frame):
                 if RECOGNITION_COUNTS[label] == RECOGNITION_THRESHOLD:
                     print(f"[INFO] {label} đã được xác nhận sau {RECOGNITION_THRESHOLD} lần nhận diện.")
                     mark_attendance(label)
+                    RECOGNITION_COUNTS[label] = 0
                 else:
                     continue  
             label_to_return = label

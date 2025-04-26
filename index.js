@@ -35,7 +35,11 @@ async function startCamera(deviceId = null) {
         videoStream.getTracks().forEach(track => track.stop());
     }
     const constraints = {
-        video: deviceId ? { deviceId: { exact: deviceId } } : true
+        video: {
+            width: { ideal: 1920 },
+            height: { ideal: 1080 },
+            deviceId: deviceId ? { exact: deviceId } : undefined
+        }
     };
     try {
         videoStream = await navigator.mediaDevices.getUserMedia(constraints);
@@ -44,6 +48,18 @@ async function startCamera(deviceId = null) {
     } catch (err) {
         showSystemMessage("Không thể bật camera: " + err.message);
     }
+}
+
+async function captureImageAsBase64() {
+    const video = document.getElementById('video');
+    const canvas = document.createElement('canvas');
+    const width = video.videoWidth;
+    const height = video.videoHeight;
+    canvas.width = width;
+    canvas.height = height;
+    const context = canvas.getContext('2d');
+    context.drawImage(video, 0, 0, width, height);
+    return canvas.toDataURL('image/jpeg', 0.9);
 }
 
 async function callAPI(endpoint) {
@@ -127,18 +143,6 @@ function showSystemMessage(msg) {
     const chatLog = document.getElementById('chatLog');
     chatLog.innerHTML += `<div class="msg system">${msg}</div>`;
     chatLog.scrollTop = chatLog.scrollHeight;
-}
-
-async function captureImageAsBase64() {
-    const video = document.getElementById('video');
-    const canvas = document.createElement('canvas');
-    const width = 640;
-    const height = 480;
-    canvas.width = width;
-    canvas.height = height;
-    const context = canvas.getContext('2d');
-    context.drawImage(video, 0, 0, width, height);
-    return canvas.toDataURL('image/jpeg', 0.9);
 }
 
 function startTrainingStatusPolling() {
