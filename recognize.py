@@ -19,7 +19,7 @@ ATTENDANCE_EXCEL = "attendance.xlsx"
 MLP_MODEL_PATH = "mlp_classifier.h5"
 LABEL_MAP_PATH = "label_mapping.pkl"
 MLP_PROB_THRESHOLD = 0.85      # Số ... đến 0.85
-EMBED_DIST_THRESHOLD = 0.55    # Số 0.55 đến 0.7
+EMBED_DIST_THRESHOLD = 0.7    # Số 0.55 đến 0.7
 
 # === Trạng thái toàn cục ===
 attended_today = set()
@@ -29,7 +29,7 @@ ACTIVE_TRACKS = {}
 TOTAL_TRACKS = {}
 NEXT_ID = 1
 RECOGNITION_COUNTS = {} 
-RECOGNITION_THRESHOLD = 2
+RECOGNITION_THRESHOLD = 3
 
 # === Load mô hình ===
 def load_facenet_model():

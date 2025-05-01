@@ -10,7 +10,8 @@ def get_bot_response(message):
     message_lower = original_message.lower()
 
     greetings = ["hi", "hello", "hey", "xin chào", "chào bạn", "bot ơi", "yo"]
-    usage = ["help", "giúp tôi", "giúp", "hỗ trợ", "hướng dẫn", "sử dụng", "dùng sao", "cách dùng"]
+    usage = ["help", "giúp tôi", "giúp", "hỗ trợ", "hướng dẫn", "sử dụng", "dùng sao", "cách dùng", "hướng dẫn sử dụng", "giúp đỡ"
+    "hướng dẫn sử dụng hệ thống điểm danh", "hướng dẫn sử dụng bot", "hướng dẫn sử dụng hệ thống"]
     thanks = ["thank you", "cảm ơn", "cảm ơn bạn", "cảm ơn bot", "cảm ơn nhiều", "cảm ơn rất nhiều"]
     bye = ["bye", "tạm biệt", "hẹn gặp lại", "tạm biệt bạn", "tạm biệt bot"]
 

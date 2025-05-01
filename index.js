@@ -7,6 +7,9 @@ let lastStudentID = null;
 let trainingStatusInterval = null;
 let lastTrainingStatus = "";
 let recognizeInterval = null;
+let videoTrack = null;
+let zoomSlider = null;
+let zoomValueDisplay = null;
 let recognizedNames = new Set();
 
 async function listCameras() {
@@ -41,11 +44,69 @@ async function startCamera(deviceId = null) {
             deviceId: deviceId ? { exact: deviceId } : undefined
         }
     };
-    try {
-        videoStream = await navigator.mediaDevices.getUserMedia(constraints);
-        const video = document.getElementById("video");
-        video.srcObject = videoStream;
-    } catch (err) {
+    // try {
+    //     videoStream = await navigator.mediaDevices.getUserMedia(constraints);
+    //     const video = document.getElementById("video");
+    //     video.srcObject = videoStream;
+    //     const videoTrack = videoStream.getVideoTracks()[0];
+    //     const capabilities = videoTrack.getCapabilities();
+
+    //     if (capabilities.zoom) {
+    //         const zoomLevel = capabilities.zoom.max;
+    //         await videoTrack.applyConstraints({
+    //             advanced: [{ zoom: zoomLevel }]
+    //         });
+    //         console.log("Zoom được hỗ trợ");
+    //     } else {
+    //         console.warn("Camera không hỗ trợ zoom.");
+    //     }
+    // } catch (err) {
+        try {
+            videoStream = await navigator.mediaDevices.getUserMedia(constraints);
+            const video = document.getElementById("video");
+            video.srcObject = videoStream;
+    
+            videoTrack = videoStream.getVideoTracks()[0];
+            const capabilities = videoTrack.getCapabilities();
+    
+            zoomSlider = document.getElementById('zoomSlider');
+            zoomValueDisplay = document.getElementById('zoomValue');
+    
+            if (capabilities.zoom) {
+                const zoomMin = capabilities.zoom.min;
+                const zoomMax = capabilities.zoom.max;
+                const zoomStep = capabilities.zoom.step || 0.1;
+                const zoomDefault = (zoomMin + zoomMax) / 2;
+    
+                zoomSlider.min = zoomMin;
+                zoomSlider.max = zoomMax;
+                zoomSlider.step = zoomStep;
+                zoomSlider.value = zoomDefault.toFixed(2);
+    
+                // Áp dụng zoom mặc định
+                await videoTrack.applyConstraints({
+                    advanced: [{ zoom: zoomDefault }]
+                });
+                zoomValueDisplay.textContent = `${parseFloat(zoomSlider.value).toFixed(1)}x`;
+    
+                zoomSlider.oninput = async () => {
+                    const zoomLevel = parseFloat(zoomSlider.value);
+                    await videoTrack.applyConstraints({
+                        advanced: [{ zoom: zoomLevel }]
+                    });
+                    zoomValueDisplay.textContent = `${zoomLevel.toFixed(1)}x`;
+                };
+    
+                zoomSlider.disabled = false;
+                document.getElementById('zoomControl').style.display = 'block';
+                console.log("Zoom được hỗ trợ");
+            } else {
+                // Nếu không hỗ trợ zoom thì ẩn slider
+                zoomSlider.disabled = true;
+                document.getElementById('zoomControl').style.display = 'none';
+                console.warn("Camera không hỗ trợ zoom.");
+            }
+         } catch (err) {
         showSystemMessage("Không thể bật camera: " + err.message);
     }
 }

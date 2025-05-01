@@ -68,7 +68,17 @@
             height: 400px;
             overflow-y: auto;
         }
-
+        #zoomControl {
+        margin-top: 10px;
+        }
+        #zoomSlider {
+        width: 200px;
+        vertical-align: middle;
+        }
+        #zoomValue {
+        margin-left: 5px;
+        font-weight: bold;
+        }
     </style>
 </head>
 
@@ -87,6 +97,11 @@
                 <div>
                     <label for="cameraSelect" class="form-label fs-5 pb-2">Select Camera:</label>
                     <select id="cameraSelect" class="form-select mb-2 custom-camera-select" onchange="switchCamera()"></select>
+                </div>
+                <div id="zoomControl">
+                    <label for="zoomSlider">Thu phóng (Zoom): </label>
+                    <input type="range" id="zoomSlider" min="1" max="1" step="0.1" value="1">
+                    <span id="zoomValue">1x</span>
                 </div>
                 <button onclick="callAPI('/capture')" class="btn btn-primary d-flex align-items-center mt-3">
                     <div class="me-2 d-flex align-items-center">
@@ -157,5 +172,4 @@
     <script src="index.js"></script>
     <script src="bootstrap-5.0.2-dist/js/bootstrap.bundle.min.js"></script>
 </body>
-
 </html>
