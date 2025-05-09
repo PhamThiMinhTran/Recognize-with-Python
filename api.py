@@ -44,11 +44,16 @@ chat_model = ns.model("ChatMessage", {
     "message": fields.String(required=True, description="Tin nhắn từ người dùng")
 })
 
+remove_attendance_model = ns.model('RemoveAttendance', {
+    'names': fields.List(fields.String, required=True, description='Danh sách tên sinh viên cần xoá')
+})
+
 EMBEDDINGS_PATH = "embeddings.npz"
 MODEL_PATH = "trained_facenet_model.pb"
 DATASET_PATH = "dataset"
 VIDEO_PATH = "videos"
 training_status = {"status": "Chưa bắt đầu"}
+
 
 # Khởi tạo model faceNet
 def start_training_thread():
@@ -181,6 +186,31 @@ class DownloadAttendance(Resource):
             return send_file(path, as_attachment=True)
         return {"error": "Khong tim thay File"}, 404
 
+@ns.route("/remove_attendance")
+class RemoveAttendance(Resource):
+    @ns.expect(remove_attendance_model)
+    def post(self):
+        data = request.get_json()
+        names = data.get("names")  
+
+        if not names or not isinstance(names, list):
+            return {"error": "Thiếu danh sách tên sinh viên hoặc không đúng định dạng"}, 400
+
+        global attendance_data
+        before_count = len(attendance_data)
+        attendance_data = [record for record in attendance_data if record["Name"] not in names]
+        after_count = len(attendance_data)
+
+        removed_count = before_count - after_count
+        if removed_count > 0:
+            save_attendance()  
+            return {
+                "message": f"Đã xóa {removed_count} bản ghi khỏi danh sách và cập nhật file attendance.xlsx.",
+                "remaining_attendance": attendance_data
+            }, 200
+        else:
+            return {"error": "Không tìm thấy bản ghi nào của các sinh viên để xóa."}, 404
+        
 @ns.route("/preview_attendance")
 class PreviewAttendance(Resource):
     def get(self):

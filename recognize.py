@@ -283,6 +283,12 @@ def recognize_faces_from_image(frame):
         else:
             label_to_return = "Unknown"
 
+        color = (0, 255, 0) if label_to_return != "Unknown" else (0, 0, 255)
+        cv2.rectangle(frame, (x, y), (x + w, y + h), color, 2)
+
+        label_text = f"{label_to_return} ({max_prob * 100:.1f}%)" if label_to_return != "Unknown" else "Unknown"
+        cv2.putText(frame, label_text, (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 2)
+        
         results.append({
             "id": assigned_id,
             "label": label_to_return,

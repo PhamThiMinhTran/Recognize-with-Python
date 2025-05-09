@@ -61,52 +61,52 @@ async function startCamera(deviceId = null) {
     //         console.warn("Camera không hỗ trợ zoom.");
     //     }
     // } catch (err) {
-        try {
-            videoStream = await navigator.mediaDevices.getUserMedia(constraints);
-            const video = document.getElementById("video");
-            video.srcObject = videoStream;
-    
-            videoTrack = videoStream.getVideoTracks()[0];
-            const capabilities = videoTrack.getCapabilities();
-    
-            zoomSlider = document.getElementById('zoomSlider');
-            zoomValueDisplay = document.getElementById('zoomValue');
-    
-            if (capabilities.zoom) {
-                const zoomMin = capabilities.zoom.min;
-                const zoomMax = capabilities.zoom.max;
-                const zoomStep = capabilities.zoom.step || 0.1;
-                const zoomDefault = (zoomMin + zoomMax) / 2;
-    
-                zoomSlider.min = zoomMin;
-                zoomSlider.max = zoomMax;
-                zoomSlider.step = zoomStep;
-                zoomSlider.value = zoomDefault.toFixed(2);
-    
-                // Áp dụng zoom mặc định
+    try {
+        videoStream = await navigator.mediaDevices.getUserMedia(constraints);
+        const video = document.getElementById("video");
+        video.srcObject = videoStream;
+
+        videoTrack = videoStream.getVideoTracks()[0];
+        const capabilities = videoTrack.getCapabilities();
+
+        zoomSlider = document.getElementById('zoomSlider');
+        zoomValueDisplay = document.getElementById('zoomValue');
+
+        if (capabilities.zoom) {
+            const zoomMin = capabilities.zoom.min;
+            const zoomMax = capabilities.zoom.max;
+            const zoomStep = capabilities.zoom.step || 0.1;
+            const zoomDefault = (zoomMin + zoomMax) / 2;
+
+            zoomSlider.min = zoomMin;
+            zoomSlider.max = zoomMax;
+            zoomSlider.step = zoomStep;
+            zoomSlider.value = zoomDefault.toFixed(2);
+
+            // Áp dụng zoom mặc định
+            await videoTrack.applyConstraints({
+                advanced: [{ zoom: zoomDefault }]
+            });
+            zoomValueDisplay.textContent = `${parseFloat(zoomSlider.value).toFixed(1)}x`;
+
+            zoomSlider.oninput = async () => {
+                const zoomLevel = parseFloat(zoomSlider.value);
                 await videoTrack.applyConstraints({
-                    advanced: [{ zoom: zoomDefault }]
+                    advanced: [{ zoom: zoomLevel }]
                 });
-                zoomValueDisplay.textContent = `${parseFloat(zoomSlider.value).toFixed(1)}x`;
-    
-                zoomSlider.oninput = async () => {
-                    const zoomLevel = parseFloat(zoomSlider.value);
-                    await videoTrack.applyConstraints({
-                        advanced: [{ zoom: zoomLevel }]
-                    });
-                    zoomValueDisplay.textContent = `${zoomLevel.toFixed(1)}x`;
-                };
-    
-                zoomSlider.disabled = false;
-                document.getElementById('zoomControl').style.display = 'block';
-                console.log("Zoom được hỗ trợ");
-            } else {
-                // Nếu không hỗ trợ zoom thì ẩn slider
-                zoomSlider.disabled = true;
-                document.getElementById('zoomControl').style.display = 'none';
-                console.warn("Camera không hỗ trợ zoom.");
-            }
-         } catch (err) {
+                zoomValueDisplay.textContent = `${zoomLevel.toFixed(1)}x`;
+            };
+
+            zoomSlider.disabled = false;
+            document.getElementById('zoomControl').style.display = 'block';
+            console.log("Zoom được hỗ trợ");
+        } else {
+            // Nếu không hỗ trợ zoom thì ẩn slider
+            zoomSlider.disabled = true;
+            document.getElementById('zoomControl').style.display = 'none';
+            console.warn("Camera không hỗ trợ zoom.");
+        }
+    } catch (err) {
         showSystemMessage("Không thể bật camera: " + err.message);
     }
 }
@@ -244,13 +244,18 @@ function startRecognizing() {
         })
             .then(res => res.json())
             .then(data => {
-                const recognizedResults = data.results?.results;
+                const recognizedResults = data.results;
                 if (recognizedResults && recognizedResults.length > 0) {
                     recognizedResults.forEach(result => {
                         const label = result.label;
-                        if (label !== "Unknown" && label !== "Processing" && !recognizedNames.has(label)) {
-                            recognizedNames.add(label);
-                            showSystemMessage(`Nhận diện: ${label}`);
+                        const prob = (result.probability * 100).toFixed(1);
+                        const displayText = (label !== "Unknown")
+                            ? `${label} (${prob}%)`
+                            : `Unknown (${prob}%)`;
+
+                        if (!recognizedNames.has(displayText)) {
+                            recognizedNames.add(displayText);
+                            showSystemMessage(`Nhận diện: ${displayText}`);
                         }
                     });
                 } else {
@@ -279,30 +284,63 @@ function exportData() {
         })
         .then(data => {
             renderPreviewModal(data);
-            const modal = new bootstrap.Modal(document.getElementById('attendancePreviewModal'));
-            modal.show();
+
+            const modalEl = document.getElementById('attendancePreviewModal');
+            const modalInstance = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+            if (!modalEl.classList.contains('show')) {
+                modalInstance.show();
+            }
         })
         .catch(err => {
             showSystemMessage("Lỗi: " + err.message);
         });
 }
 
+function deleteStudent(name) {
+    const safeName = name.replace(/'/g, "\\'");
+    if (!confirm(`Bạn có chắc muốn xoá "${name}" khỏi danh sách điểm danh?`)) return;
+    showSystemMessage(`Đang xoá "${name}"...`);
+    if (!Array.isArray(namesToRemove) || namesToRemove.length === 0) {
+        showSystemMessage("Vui lòng nhập ít nhất 1 tên sinh viên để xoá.");
+        return;
+    }
+
+    fetch('http://127.0.0.1:5000/api/remove_attendance', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: name })
+    })
+        .then(res => res.json())
+        .then(data => {
+            if (data.error) throw new Error(data.error);
+            showSystemMessage(data.message);
+            exportData();
+        })
+        .catch(err => {
+            showSystemMessage("Lỗi khi xoá sinh viên: " + err.message);
+        });
+}
+
 function renderPreviewModal(data) {
     const container = document.getElementById("attendancePreviewList");
-    if (!data.length) {
+    if (!Array.isArray(data) || data.length === 0) {
         container.innerHTML = "<p class='text-danger'>Danh sách điểm danh trống.</p>";
         return;
     }
-    let html = `<table class="table table-bordered"><thead><tr>`;
+
     const keys = Object.keys(data[0]);
+    let html = `<table class="table table-bordered table-sm"><thead><tr>`;
     keys.forEach(k => html += `<th>${k}</th>`);
-    html += "</tr></thead><tbody>";
+    html += `<th>Hành động</th></tr></thead><tbody>`;
 
     data.forEach(row => {
         html += "<tr>";
-        keys.forEach(k => html += `<td>${row[k]}</td>`);
+        keys.forEach(k => html += `<td>${sanitizeHTML(row[k])}</td>`);
+        const safeNameAttr = encodeURIComponent(row['Name']);
+        html += `<td><button class="btn btn-danger btn-sm" onclick="deleteStudent(decodeURIComponent('${safeNameAttr}'))">Xoá</button></td>`;
         html += "</tr>";
     });
+
     html += "</tbody></table>";
     container.innerHTML = html;
 }
@@ -356,17 +394,26 @@ function chatBot() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message })
     })
-    .then(res => res.json())
-    .then(data => {
-        if (data.response) {
-            appendMessage(data.response, 'bot');
-        } else {
-            appendMessage("Chatbot không phản hồi đúng định dạng.", 'system');
-        }
-    })
-    .catch(error => {
-        appendMessage("Lỗi kết nối chatbot: " + error.message, 'system');
-    });
+        .then(res => res.json())
+        .then(data => {
+            if (data.response) {
+                appendMessage(data.response, 'bot');
+            } else {
+                appendMessage("Chatbot không phản hồi đúng định dạng.", 'system');
+            }
+        })
+        .catch(error => {
+            appendMessage("Lỗi kết nối chatbot: " + error.message, 'system');
+        });
+}
+
+function sanitizeHTML(str) {
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
 }
 
 window.onload = async () => {
