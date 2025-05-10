@@ -175,7 +175,7 @@ def save_face_images(frame, faces, student_id, context):
     for face in faces:
         x, y, w, h = max(0, face["box"][0]), max(0, face["box"][1]), face["box"][2], face["box"][3]
         face_img = frame[y:y + h, x:x + w]
-        if is_blurry(face_img) or w < 30 or h < 30:
+        if is_blurry(face_img):
             continue
         embedding = get_face_embedding(face_img, sess, input_tensor, output_tensor, phase_train, context["graph"])
         if embedding is None:
