@@ -160,11 +160,27 @@ class RecognizeFace(Resource):
         if frame is None:
             return {"error": "Invalid image"}, 400
         results = recognize_faces_from_image(frame)
-        if results:
-            names = [item["label"] for item in results if "label" in item]
-            return {"message": f"Da nhan dien duoc: {', '.join(names)}", "results": results}
+        recognized_names = []
+        now = datetime.now().strftime("%Y-%m-%d")  # Ngày hôm nay
+
+        for item in results:
+            name = item.get("label")
+            if name and name not in recognized_names:
+                # Kiểm tra nếu đã điểm danh hôm nay rồi
+                already_marked = any(r["Name"] == name and r["Date"] == now for r in attendance_data)
+                if not already_marked:
+                    attendance_data.append({
+                        "Name": name,
+                        "Date": now,
+                        "Time": datetime.now().strftime("%H:%M:%S"),
+                        "Session": "Tối" if datetime.now().hour >= 17 else "Sáng"
+                    })
+                    recognized_names.append(name)
+
+        if recognized_names:
+            return {"message": f"Đã nhận diện và điểm danh: {', '.join(recognized_names)}", "results": results}
         else:
-            return {"message": "Khong nhan dien duoc mat.", "results": []}
+            return {"message": "Không nhận diện hoặc đã điểm danh trước đó.", "results": []}
 
 @ns.route("/save_attendance")
 class SaveAttendance(Resource):
@@ -198,7 +214,9 @@ class RemoveAttendance(Resource):
 
         global attendance_data
         before_count = len(attendance_data)
-        attendance_data = [record for record in attendance_data if record["Name"] not in names]
+        filtered = [record for record in attendance_data if record["Name"] not in names]
+        attendance_data.clear()
+        attendance_data.extend(filtered)
         after_count = len(attendance_data)
 
         removed_count = before_count - after_count

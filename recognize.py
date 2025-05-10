@@ -29,7 +29,7 @@ ACTIVE_TRACKS = {}
 TOTAL_TRACKS = {}
 NEXT_ID = 1
 RECOGNITION_COUNTS = {} 
-RECOGNITION_THRESHOLD = 3
+RECOGNITION_THRESHOLD = 2
 
 # === Load mô hình ===
 def load_facenet_model():

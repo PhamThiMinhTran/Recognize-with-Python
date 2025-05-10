@@ -300,15 +300,11 @@ function deleteStudent(name) {
     const safeName = name.replace(/'/g, "\\'");
     if (!confirm(`Bạn có chắc muốn xoá "${name}" khỏi danh sách điểm danh?`)) return;
     showSystemMessage(`Đang xoá "${name}"...`);
-    if (!Array.isArray(namesToRemove) || namesToRemove.length === 0) {
-        showSystemMessage("Vui lòng nhập ít nhất 1 tên sinh viên để xoá.");
-        return;
-    }
 
     fetch('http://127.0.0.1:5000/api/remove_attendance', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: name })
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ names: [name] })
     })
         .then(res => res.json())
         .then(data => {
