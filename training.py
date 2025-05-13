@@ -3,6 +3,7 @@ import numpy as np
 import cv2
 import tensorflow as tf
 import pickle
+import faiss
 from mtcnn import MTCNN
 from tensorflow.keras.applications.mobilenet_v2 import preprocess_input # type: ignore
 from tensorflow.keras.models import Sequential # type: ignore
