@@ -159,6 +159,14 @@ def process_data(sess, input_tensor, output_tensor, phase_train, graph):
     print(f"[INFO] Đã lưu {len(all_embeddings)} embeddings vào {EMBEDDINGS_PATH}")
     train_mlp_classifier(np.array(all_embeddings), all_labels)
 
+    embedding_array = np.array(all_embeddings).astype('float32')
+    index = faiss.IndexFlatL2(embedding_array.shape[1])
+    index.add(embedding_array)
+    faiss.write_index(index, "faiss_index.bin")
+    print("[INFO] FAISS index saved to faiss_index.bin")
+    np.save("faiss_labels.npy", np.array(all_labels))
+    print("[INFO] FAISS labels saved to faiss_labels.npy")
+
 # Huấn luyện MLP
 def train_mlp_classifier(embeddings, labels, model_path="mlp_classifier.h5", label_map_path="label_mapping.pkl"):
     print("[INFO] Đang huấn luyện mô hình MLP...")

@@ -161,10 +161,13 @@ class RecognizeFace(Resource):
             return {"error": "Invalid image"}, 400
         results = recognize_faces_from_image(frame)
         recognized_names = []
+        recognized_but_already_marked = []
         now = datetime.now().strftime("%Y-%m-%d")  # Ngày hôm nay
 
         for item in results:
             name = item.get("label")
+            if not name or name == "Unknown":
+                continue 
             if name and name not in recognized_names:
                 # Kiểm tra nếu đã điểm danh hôm nay rồi
                 already_marked = any(r["Name"] == name and r["Date"] == now for r in attendance_data)
@@ -176,11 +179,21 @@ class RecognizeFace(Resource):
                         "Session": "Tối" if datetime.now().hour >= 17 else "Sáng"
                     })
                     recognized_names.append(name)
+                else:
+                    recognized_but_already_marked.append(name)
 
         if recognized_names:
-            return {"message": f"Đã nhận diện và điểm danh: {', '.join(recognized_names)}", "results": results}
+            return {
+                "message": f"Đã nhận diện và điểm danh: {', '.join(recognized_names)}",
+                "results": results
+            }
+        elif recognized_but_already_marked:
+            return {
+                "message": f"Đã nhận diện nhưng đã điểm danh trước đó: {', '.join(recognized_but_already_marked)}",
+                "results": results
+            }
         else:
-            return {"message": "Không nhận diện hoặc đã điểm danh trước đó.", "results": []}
+            return {"message": "Không nhận diện được khuôn mặt hợp lệ.", "results": []}
 
 @ns.route("/save_attendance")
 class SaveAttendance(Resource):

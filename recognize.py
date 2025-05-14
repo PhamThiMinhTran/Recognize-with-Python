@@ -1,10 +1,10 @@
 import os
-import time
 import cv2
 import numpy as np
 import pandas as pd
 import tensorflow as tf
 import pickle
+import faiss
 from mtcnn import MTCNN
 from datetime import datetime
 from tensorflow.keras.models import load_model  # type: ignore
@@ -18,6 +18,8 @@ MODEL_PATH = "trained_facenet_model.pb"
 ATTENDANCE_EXCEL = "attendance.xlsx"
 MLP_MODEL_PATH = "mlp_classifier.h5"
 LABEL_MAP_PATH = "label_mapping.pkl"
+FAISS_INDEX_PATH = "faiss_index.bin"     
+FAISS_LABELS_PATH = "faiss_labels.npy"    
 MLP_PROB_THRESHOLD = 0.85      # Số ... đến 0.85
 EMBED_DIST_THRESHOLD = 0.7    # Số 0.55 đến 0.7
 
@@ -45,7 +47,7 @@ sess, graph = load_facenet_model()
 input_tensor = graph.get_tensor_by_name("input:0")
 output_tensor = graph.get_tensor_by_name("embeddings:0")
 phase_train = graph.get_tensor_by_name("phase_train:0")
-atexit.register(sess.close) 
+atexit.register(sess.close)
 
 mlp_model = load_model(MLP_MODEL_PATH, compile=False)
 with open(LABEL_MAP_PATH, "rb") as f:
@@ -54,6 +56,9 @@ inv_label_mapping = {v: k for k, v in label_mapping.items()}
 data = np.load(EMBEDDINGS_PATH)
 known_embeddings = data['embeddings']
 known_labels = data['labels']
+
+faiss_index = faiss.read_index(FAISS_INDEX_PATH)
+faiss_labels = np.load(FAISS_LABELS_PATH)
 
 def preprocess_face(face_img):
     if face_img is None or face_img.shape[0] < 20 or face_img.shape[1] < 20:
@@ -78,16 +83,26 @@ def normalize_embedding(embedding):
         return None
     return embedding / norm
 
-def get_nearest_label_by_embedding(embedding, known_embeddings, known_labels, threshold=0.8):
-    distances = np.linalg.norm(known_embeddings - embedding, axis=1)
-    min_idx = np.argmin(distances)
-    min_dist = distances[min_idx]
+# def get_nearest_label_by_embedding(embedding, known_embeddings, known_labels, threshold=0.8):
+#     distances = np.linalg.norm(known_embeddings - embedding, axis=1)
+#     min_idx = np.argmin(distances)
+#     min_dist = distances[min_idx]
 
-    if min_dist < threshold:
-        label_idx = known_labels[min_idx]
-        return label_idx, min_dist
+#     if min_dist < threshold:
+#         label_idx = known_labels[min_idx]
+#         return label_idx, min_dist
+#     else:
+#         return "Unknown", min_dist
+def get_nearest_label_by_embedding(embedding, faiss_index, faiss_labels, threshold=0.8):
+    embedding = np.expand_dims(embedding, axis=0).astype(np.float32)
+    _, indices = faiss_index.search(embedding, k=1)  # k=1 for the nearest neighbor
+    min_idx = indices[0][0]
+    label_idx = faiss_labels[min_idx]
+    dist = np.linalg.norm(embedding - known_embeddings[min_idx])
+    if dist < threshold:
+        return label_idx, dist
     else:
-        return "Unknown", min_dist
+        return "Unknown", dist
 
 def get_face_embedding(sess, input_tensor, output_tensor, phase_train, face_img, graph):
     processed = preprocess_face(face_img)
@@ -240,11 +255,16 @@ def recognize_faces_from_image(frame):
         if embedding is None:
             continue
 
+        # probs = mlp_model.predict(np.expand_dims(embedding, axis=0), verbose=0)[0]
+        # max_prob = np.max(probs)
+        # label_idx = np.argmax(probs)
+        # label = inv_label_mapping[label_idx]
+        # label_by_dist, dist = get_nearest_label_by_embedding(embedding, known_embeddings, known_labels, threshold=EMBED_DIST_THRESHOLD)
+        label_by_dist, dist = get_nearest_label_by_embedding(embedding, faiss_index, faiss_labels, threshold=EMBED_DIST_THRESHOLD)
         probs = mlp_model.predict(np.expand_dims(embedding, axis=0), verbose=0)[0]
         max_prob = np.max(probs)
         label_idx = np.argmax(probs)
-        label = inv_label_mapping[label_idx]
-        label_by_dist, dist = get_nearest_label_by_embedding(embedding, known_embeddings, known_labels, threshold=EMBED_DIST_THRESHOLD)
+
         if max_prob >= MLP_PROB_THRESHOLD and dist <= EMBED_DIST_THRESHOLD:
             label = inv_label_mapping[label_idx]
         elif dist <= EMBED_DIST_THRESHOLD:
