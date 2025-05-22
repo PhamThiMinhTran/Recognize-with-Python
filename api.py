@@ -93,7 +93,7 @@ class CaptureFace(Resource):
             student_id = data.get("student_id")
 
             if not isinstance(images_base64, list) or not student_id:
-                return jsonify({"error": "Thieu anh hoac ma sinh vien"}), 400
+                return jsonify({"error": "Thiếu ảnh hoặc mã sinh viên"}), 400
             global capture_context
             if capture_context.get("student_id") != student_id or capture_context.get("done", False):
                 print(f"[INFO] Đang chuyển sang sinh viên mới: {student_id}")
@@ -146,7 +146,7 @@ def base64_to_image(base64_str):
         nparr = np.frombuffer(img_data, np.uint8)
         return cv2.imdecode(nparr, cv2.IMREAD_COLOR)
     except Exception as e:
-        print(f"[ERROR] base64 decode failed: {e}")
+        print(f"[ERROR] Ảnh base64 lỗi: {e}")
         return None
 
 @ns.route("/recognize")
@@ -155,21 +155,20 @@ class RecognizeFace(Resource):
     def post(self):
         data = request.get_json()
         if not data or "image" not in data:
-            return {"error": "Missing image"}, 400
+            return {"error": "Không có ảnh"}, 400
         frame = base64_to_image(data["image"])
         if frame is None:
-            return {"error": "Invalid image"}, 400
+            return {"error": "Ảnh không hợp lệ"}, 400
         results = recognize_faces_from_image(frame)
         recognized_names = []
         recognized_but_already_marked = []
-        now = datetime.now().strftime("%Y-%m-%d")  # Ngày hôm nay
+        now = datetime.now().strftime("%Y-%m-%d") 
 
         for item in results:
             name = item.get("label")
             if not name or name == "Unknown":
                 continue 
             if name and name not in recognized_names:
-                # Kiểm tra nếu đã điểm danh hôm nay rồi
                 already_marked = any(r["Name"] == name and r["Date"] == now for r in attendance_data)
                 if not already_marked:
                     attendance_data.append({
@@ -199,11 +198,11 @@ class RecognizeFace(Resource):
 class SaveAttendance(Resource):
     def post(self):
         if not attendance_data:
-            return {"error": "Chua co ai diem danh!"}, 400
+            return {"error": "Chưa có ai điểm danh!"}, 400
         try:
             save_attendance()
             attendance_data.clear()  
-            return {"message": "Da luu diem danh attendance.xlsx"}, 200
+            return {"message": "Đã lưu danh sách attendance.xlsx"}, 200
         except Exception as e:
             return {"error": str(e)}, 500
 
@@ -213,7 +212,7 @@ class DownloadAttendance(Resource):
         path = "attendance.xlsx"
         if os.path.exists(path):
             return send_file(path, as_attachment=True)
-        return {"error": "Khong tim thay File"}, 404
+        return {"error": "Không tìm thấy File"}, 404
 
 @ns.route("/remove_attendance")
 class RemoveAttendance(Resource):
