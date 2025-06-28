@@ -33,8 +33,8 @@ def get_model_tensors(graph):
 
 
 def preprocess_face(face):
-    if face.shape[0] < 20 or face.shape[1] < 20:
-        return None
+    # if face.shape[0] < 20 or face.shape[1] < 20:
+    #     return None
     face = cv2.resize(face, (160, 160))
     face = np.expand_dims(face, axis=0)
     return preprocess_input(face)
